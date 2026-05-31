@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
+  image        String?
+  passwordHash String?
+  role         Role       @default(LEARNER)
+  xp           Int        @default(0)
+  hearts       Int        @default(5)
+  streakDays   Int        @default(0)
+  topikLevel   TOPIKLevel @default(TOPIK1)
+  lastActiveAt DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  accounts         Account[]
+  sessions         Session[]
+  vocabProgress    VocabProgress[]
+  grammarProgress  GrammarProgress[]
+  hangulProgress   HangulProgress[]
+  attempts         Attempt[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model VocabUnit {
+  id         String      @id @default(cuid())
+  title      String
+  titleKo    String
+  topikLevel TOPIKLevel
+  order      Int
+  createdAt  DateTime    @default(now())
+  lessons    VocabLesson[]
+  progress   VocabProgress[]
+}
+
+model VocabLesson {
+  id        String    @id @default(cuid())
+  unitId    String
+  unit      VocabUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  order     Int
+  exercises Json
+  createdAt DateTime  @default(now())
+}
+
+model VocabProgress {
+  id        String    @id @default(cuid())
+  userId    String
+  unitId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit      VocabUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  completed Boolean   @default(false)
+  score     Float?
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, unitId])
+}
+
+model HangulSet {
+  id         String     @id @default(cuid())
+  type       HangulType
+  category   String
+  characters Json
+  order      Int        @default(0)
+  createdAt  DateTime   @default(now())
+  progress   HangulProgress[]
+}
+
+model HangulProgress {
+  id        String    @id @default(cuid())
+  userId    String
+  setId     String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  set       HangulSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  completed Boolean   @default(false)
+  score     Float?
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, setId])
+}
+
+model GrammarUnit {
+  id          String          @id @default(cuid())
+  title       String
+  titleKo     String
+  topikLevel  TOPIKLevel
+  pattern     String
+  explanation String          @db.Text
+  order       Int
+  createdAt   DateTime        @default(now())
+  lessons     GrammarLesson[]
+  progress    GrammarProgress[]
+}
+
+model GrammarLesson {
+  id        String      @id @default(cuid())
+  unitId    String
+  unit      GrammarUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  order     Int
+  exercises Json
+  createdAt DateTime    @default(now())
+}
+
+model GrammarProgress {
+  id        String      @id @default(cuid())
+  userId    String
+  unitId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit      GrammarUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  completed Boolean     @default(false)
+  score     Float?
+  updatedAt DateTime    @updatedAt
+
+  @@unique([userId, unitId])
+}
+
+model ReadingTest {
+  id         String     @id @default(cuid())
+  title      String
+  titleKo    String
+  topikLevel TOPIKLevel
+  passage    String     @db.Text
+  timeLimit  Int
+  createdAt  DateTime   @default(now())
+  questions  Question[]
+}
+
+model ListeningTest {
+  id         String     @id @default(cuid())
+  title      String
+  topikLevel TOPIKLevel
+  audioUrl   String
+  transcript String?    @db.Text
+  createdAt  DateTime   @default(now())
+  questions  Question[]
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  type          QuestionType
+  prompt        String       @db.Text
+  options       Json?
+  correctAnswer Json
+  explanation   String?      @db.Text
+  order         Int          @default(0)
+  readingId     String?
+  listeningId   String?
+  reading       ReadingTest?   @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  listening     ListeningTest? @relation(fields: [listeningId], references: [id], onDelete: Cascade)
+}
+
+model WritingTask {
+  id            String          @id @default(cuid())
+  taskType      WritingTaskType
+  prompt        String          @db.Text
+  promptKo      String?         @db.Text
+  imageUrl      String?
+  minChars      Int
+  timeLimit     Int
+  topikLevel    TOPIKLevel
+  requireFormal Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+}
+
+model SpeakingSet {
+  id           String          @id @default(cuid())
+  topikLevel   TOPIKLevel
+  taskType     SpeakingTaskType
+  topic        String
+  topicKo      String
+  prompts      Json
+  speechLevel  SpeechLevel     @default(FORMAL)
+  prepTimeSec  Int             @default(30)
+  speakTimeSec Int             @default(90)
+  createdAt    DateTime        @default(now())
+}
+
+model Attempt {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill       SkillType
+  refId       String
+  rawAnswer   Json
+  score       Float?
+  feedback    Json?
+  durationSec Int?
+  createdAt   DateTime @default(now())
+}
+
+enum Role {
+  LEARNER
+  ADMIN
+}
+
+enum TOPIKLevel {
+  TOPIK1
+  TOPIK2
+  TOPIK3
+  TOPIK4
+  TOPIK5
+  TOPIK6
+}
+
+enum HangulType {
+  JAMO_BASIC
+  JAMO_COMPOUND
+  SYLLABLE_BLOCK
+}
+
+enum SpeechLevel {
+  FORMAL
+  POLITE
+  INFORMAL
+}
+
+enum SkillType {
+  READING
+  LISTENING
+  WRITING
+  SPEAKING
+  VOCAB
+  GRAMMAR
+  HANGUL
+}
+
+enum QuestionType {
+  MCQ
+  FILL_BLANK
+  TRUE_FALSE
+  MATCHING
+  SHORT_ANSWER
+}
+
+enum WritingTaskType {
+  TOPIK_51
+  TOPIK_52
+  TOPIK_53
+  FREE
+}
+
+enum SpeakingTaskType {
+  CONVERSATION
+  PICTURE_DESC
+  OPINION
+  ROLEPLAY
+}
