@@ -14,7 +14,6 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "groq-sdk": "^0.9.1",
     "@auth/prisma-adapter": "^2.7.4",
     "@deepgram/sdk": "^3.9.0",
     "@hookform/resolvers": "^3.9.1",
@@ -41,8 +40,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^11.12.0",
+    "groq-sdk": "^0.9.1",
     "lucide-react": "^0.460.0",
-    "next": "15.0.3",
+    "next": "^16.2.6",
     "next-auth": "^5.0.0-beta.25",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
